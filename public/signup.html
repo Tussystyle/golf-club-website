@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Request Access — Captain Randy and His Merry Fellows</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <span class="emblem">⚓</span>
+      <h1>Captain Randy and<br>His Merry Fellows</h1>
+      <p>Request Membership</p>
+    </div>
+
+    <div id="alert-box" class="alert"></div>
+
+    <!-- Success state (hidden until submitted) -->
+    <div id="success-state" class="hidden" style="text-align:center; padding: 20px 0;">
+      <span style="font-size:3rem;">✅</span>
+      <h3 style="color:var(--gold); font-family:var(--font-main); margin: 16px 0 8px;">Request Submitted!</h3>
+      <p style="color:var(--grey); font-size:0.9rem; margin-bottom: 24px;">
+        Your application has been sent. An admin will review it and you'll receive
+        confirmation once approved.
+      </p>
+      <a href="index.html" class="btn btn-secondary" style="display:inline-flex;">
+        Back to Login
+      </a>
+    </div>
+
+    <!-- Registration Form -->
+    <form id="signup-form">
+      <div class="form-group">
+        <label for="fullname">Full Name</label>
+        <input type="text" id="fullname" placeholder="Barnacle Bill" required autocomplete="name" />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="sailor@sea.com" required autocomplete="email" />
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Cell Phone Number</label>
+        <input type="tel" id="phone" placeholder="(555) 867-5309" required autocomplete="tel" />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Choose a Password</label>
+        <input type="password" id="password" placeholder="At least 8 characters" required autocomplete="new-password" minlength="8" />
+      </div>
+
+      <div class="form-group">
+        <label for="confirm-password">Confirm Password</label>
+        <input type="password" id="confirm-password" placeholder="••••••••" required autocomplete="new-password" />
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="signup-btn">
+        Submit Request
+      </button>
+    </form>
+
+    <p class="text-center mt-16" style="font-size:0.88rem; color: var(--grey);">
+      Already a member? <a href="index.html">Sign In</a>
+    </p>
+
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script>
+  // Redirect if already logged in
+  auth.onAuthStateChanged(function (user) {
+    if (user) window.location.href = "dashboard.html";
+  });
+
+  document.getElementById("signup-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const btn        = document.getElementById("signup-btn");
+    const alertBox   = document.getElementById("alert-box");
+    const fullname   = document.getElementById("fullname").value.trim();
+    const email      = document.getElementById("email").value.trim();
+    const phone      = document.getElementById("phone").value.trim();
+    const password   = document.getElementById("password").value;
+    const confirmPwd = document.getElementById("confirm-password").value;
+
+    alertBox.className = "alert";
+
+    if (password !== confirmPwd) {
+      alertBox.textContent = "Passwords do not match.";
+      alertBox.className   = "alert alert-error show";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Submitting…';
+
+    try {
+      // Create the Auth account
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      const uid  = cred.user.uid;
+
+      // Update display name
+      await cred.user.updateProfile({ displayName: fullname });
+
+      // Save member record to Firestore with "pending" status
+      await db.collection("members").doc(uid).set({
+        uid:       uid,
+        fullName:  fullname,
+        email:     email,
+        phone:     phone,
+        status:    "pending",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Sign out immediately — they need admin approval first
+      await auth.signOut();
+
+      // Show success state
+      document.getElementById("signup-form").classList.add("hidden");
+      document.querySelector(".text-center.mt-16").classList.add("hidden");
+      document.getElementById("success-state").classList.remove("hidden");
+
+    } catch (err) {
+      alertBox.textContent = friendlyError(err.code);
+      alertBox.className   = "alert alert-error show";
+      btn.disabled  = false;
+      btn.innerHTML = "Submit Request";
+    }
+  });
+
+  function friendlyError(code) {
+    const map = {
+      "auth/email-already-in-use": "That email is already registered. Try signing in.",
+      "auth/invalid-email":        "Please enter a valid email address.",
+      "auth/weak-password":        "Password must be at least 8 characters.",
+      "auth/operation-not-allowed":"Sign-up is currently disabled."
+    };
+    return map[code] || "Something went wrong. Please try again.";
+  }
+</script>
+</body>
+</html>

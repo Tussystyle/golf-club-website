@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog — Captain Randy and His Merry Fellows</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="header-inner">
+    <a class="logo" href="dashboard.html">
+      <span class="logo-icon">⚓</span>
+      <div class="logo-text">
+        Captain Randy and His Merry Fellows
+        <span>Members Portal</span>
+      </div>
+    </a>
+    <div id="header-nav"></div>
+  </div>
+</header>
+
+<main class="page-wrap">
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px; margin-bottom:32px;">
+    <div>
+      <h1 class="page-title"><span class="icon">📜</span> Club Blog</h1>
+      <p class="page-subtitle">News, stories, and dispatches from the crew.</p>
+    </div>
+    <!-- Shown only to admins -->
+    <div id="admin-controls" class="hidden">
+      <button class="btn btn-primary" onclick="openPostModal()">+ New Post</button>
+    </div>
+  </div>
+
+  <div id="alert-box" class="alert"></div>
+
+  <!-- Posts list -->
+  <div id="post-list" class="post-list">
+    <div class="empty-state">
+      <span class="icon">⏳</span>
+      Loading posts…
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  &copy; <span id="year"></span> <span>Captain Randy and His Merry Fellows</span>. All rights reserved.
+</footer>
+
+<!-- Post Modal (create / edit) -->
+<div class="modal-overlay" id="post-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-title">New Post</h2>
+      <button class="modal-close" onclick="closePostModal()">✕</button>
+    </div>
+    <div id="modal-alert" class="alert"></div>
+    <form id="post-form">
+      <input type="hidden" id="post-id" />
+      <div class="form-group">
+        <label for="post-title">Title</label>
+        <input type="text" id="post-title" placeholder="A Grand Voyage…" required />
+      </div>
+      <div class="form-group">
+        <label for="post-body">Body</label>
+        <textarea id="post-body" rows="8" placeholder="Write your post here…" required></textarea>
+      </div>
+      <div style="display:flex; gap:12px; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closePostModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="save-post-btn" style="width:auto;">Save Post</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth-guard.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  let currentUser  = null;
+  let adminMode    = false;
+
+  function initPage(user) {
+    currentUser = user;
+    adminMode   = isAdmin(user.email);
+
+    document.getElementById("header-nav").innerHTML = buildNav(user);
+
+    if (adminMode) {
+      document.getElementById("admin-controls").classList.remove("hidden");
+    }
+
+    loadPosts();
+  }
+
+  // ---------- Load Posts ----------
+  function loadPosts() {
+    const postList = document.getElementById("post-list");
+
+    db.collection("posts")
+      .orderBy("createdAt", "desc")
+      .onSnapshot(function (snap) {
+        if (snap.empty) {
+          postList.innerHTML = `
+            <div class="empty-state">
+              <span class="icon">📜</span>
+              No posts yet. Check back soon!
+            </div>`;
+          return;
+        }
+
+        postList.innerHTML = "";
+        snap.forEach(function (doc) {
+          const p = doc.data();
+          postList.appendChild(renderPost(doc.id, p));
+        });
+      }, function (err) {
+        console.error(err);
+        postList.innerHTML = `<div class="alert alert-error show">Failed to load posts.</div>`;
+      });
+  }
+
+  function renderPost(id, p) {
+    const date    = p.createdAt ? p.createdAt.toDate().toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" }) : "—";
+    const author  = p.author || "Anonymous";
+    const card    = document.createElement("article");
+    card.className = "post-card";
+
+    const adminHTML = adminMode ? `
+      <div class="post-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openPostModal('${id}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm"    onclick="deletePost('${id}')">🗑 Delete</button>
+      </div>` : "";
+
+    card.innerHTML = `
+      <div class="post-meta">
+        <span>📅 ${date}</span>
+        <span>✍️ ${escapeHtml(author)}</span>
+      </div>
+      <h2>${escapeHtml(p.title)}</h2>
+      <div class="post-body">${escapeHtml(p.body)}</div>
+      ${adminHTML}
+    `;
+    return card;
+  }
+
+  // ---------- Modal ----------
+  function openPostModal(postId) {
+    const modal = document.getElementById("post-modal");
+    document.getElementById("modal-alert").className = "alert";
+    document.getElementById("post-form").reset();
+    document.getElementById("post-id").value = "";
+
+    if (postId) {
+      // Edit mode — load post data
+      document.getElementById("modal-title").textContent = "Edit Post";
+      db.collection("posts").doc(postId).get().then(function (snap) {
+        const p = snap.data();
+        document.getElementById("post-id").value    = postId;
+        document.getElementById("post-title").value = p.title;
+        document.getElementById("post-body").value  = p.body;
+      });
+    } else {
+      document.getElementById("modal-title").textContent = "New Post";
+    }
+
+    modal.classList.add("open");
+  }
+
+  function closePostModal() {
+    document.getElementById("post-modal").classList.remove("open");
+  }
+
+  // Close on overlay click
+  document.getElementById("post-modal").addEventListener("click", function (e) {
+    if (e.target === this) closePostModal();
+  });
+
+  // ---------- Save Post ----------
+  document.getElementById("post-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const alertEl = document.getElementById("modal-alert");
+    const btn     = document.getElementById("save-post-btn");
+    const postId  = document.getElementById("post-id").value;
+    const title   = document.getElementById("post-title").value.trim();
+    const body    = document.getElementById("post-body").value.trim();
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    alertEl.className = "alert";
+
+    try {
+      if (postId) {
+        // Update existing
+        await db.collection("posts").doc(postId).update({ title, body, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } else {
+        // Create new
+        await db.collection("posts").add({
+          title,
+          body,
+          author:    currentUser.displayName || currentUser.email,
+          authorUid: currentUser.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      closePostModal();
+    } catch (err) {
+      alertEl.textContent = "Failed to save post: " + err.message;
+      alertEl.className   = "alert alert-error show";
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "Save Post";
+    }
+  });
+
+  // ---------- Delete Post ----------
+  async function deletePost(postId) {
+    if (!confirm("Delete this post? This cannot be undone.")) return;
+    try {
+      await db.collection("posts").doc(postId).delete();
+    } catch (err) {
+      alert("Failed to delete post: " + err.message);
+    }
+  }
+
+  // ---------- Helpers ----------
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>

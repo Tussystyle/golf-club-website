@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isApprovedMember() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/members/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    function isAdmin() {
+      // List your admin email(s) here. Must match ADMIN_EMAILS in firebase-config.js
+      return isSignedIn() &&
+        request.auth.token.email in ['admin@example.com'];
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ── Members collection ────────────────────────────────────────
+    match /members/{userId} {
+      // Anyone signed in can create their own member record (during signup)
+      allow create: if isSignedIn() && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['uid','fullName','email','phone','status','createdAt'])
+        && request.resource.data.status == 'pending';
+
+      // Members can read their own record; admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Only admins can update (to approve/reject)
+      allow update: if isAdmin();
+
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    // ── Blog Posts ────────────────────────────────────────────────
+    match /posts/{postId} {
+      // Approved members and admins can read
+      allow read: if isApprovedMember() || isAdmin();
+
+      // Only admins can create, update, or delete
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ── Photos ───────────────────────────────────────────────────
+    match /photos/{photoId} {
+      // Approved members and admins can read
+      allow read: if isApprovedMember() || isAdmin();
+
+      // Only admins can create or delete
+      allow create, delete: if isAdmin();
+
+      // No updates needed for photos
+      allow update: if false;
+    }
+  }
+}

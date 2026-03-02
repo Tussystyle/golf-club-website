@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar — Captain Randy and His Merry Fellows</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="header-inner">
+    <a class="logo" href="dashboard.html">
+      <span class="logo-icon">⚓</span>
+      <div class="logo-text">
+        Captain Randy and His Merry Fellows
+        <span>Members Portal</span>
+      </div>
+    </a>
+    <div id="header-nav"></div>
+  </div>
+</header>
+
+<main class="page-wrap">
+
+  <h1 class="page-title"><span class="icon">📅</span> Events Calendar</h1>
+  <p class="page-subtitle">Upcoming voyages, gatherings, and club events.</p>
+
+  <!-- ============================================================
+       GOOGLE CALENDAR EMBED
+       ============================================================
+       HOW TO ADD YOUR CALENDAR:
+       1. Go to calendar.google.com
+       2. Click the three dots next to your calendar name → "Settings and sharing"
+       3. Scroll down to "Integrate calendar"
+       4. Copy the embed code (the full <iframe> tag)
+       5. Replace the placeholder <div> below with your <iframe> tag
+       ============================================================ -->
+
+  <!-- PLACEHOLDER — replace this entire block with your Google Calendar iframe -->
+  <div class="calendar-placeholder" id="calendar-placeholder">
+    <span style="font-size:3rem; display:block; margin-bottom:16px;">📅</span>
+    <p style="font-size:1.1rem; color:var(--gold); font-family:var(--font-main); margin-bottom:8px;">
+      Google Calendar Goes Here
+    </p>
+    <p>To embed your Google Calendar, replace this placeholder with your embed code.</p>
+    <code>
+&lt;!-- Step 1: Delete the &lt;div class="calendar-placeholder"&gt; block above --&gt;
+&lt;!-- Step 2: Paste your Google Calendar iframe here, for example: --&gt;
+
+&lt;div class="calendar-embed"&gt;
+  &lt;iframe
+    src="https://calendar.google.com/calendar/embed?src=YOUR_CALENDAR_ID&amp;ctz=America%2FNew_York"
+    style="border: 0"
+    width="100%"
+    height="650"
+    frameborder="0"
+    scrolling="no"&gt;
+  &lt;/iframe&gt;
+&lt;/div&gt;
+    </code>
+    <p style="margin-top:16px; font-size:0.82rem;">
+      Need help? See the README for full instructions on connecting Google Calendar.
+    </p>
+  </div>
+
+  <!-- Once you replace the placeholder above, the calendar will display here -->
+
+</main>
+
+<footer class="site-footer">
+  &copy; <span id="year"></span> <span>Captain Randy and His Merry Fellows</span>. All rights reserved.
+</footer>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth-guard.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  function initPage(user) {
+    document.getElementById("header-nav").innerHTML = buildNav(user);
+  }
+</script>
+</body>
+</html>

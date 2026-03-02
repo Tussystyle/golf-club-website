@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Captain Randy and His Merry Fellows</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+
+    <!-- Logo / Emblem -->
+    <div class="auth-logo">
+      <span class="emblem">⚓</span>
+      <h1>Captain Randy and<br>His Merry Fellows</h1>
+      <p>Members Only</p>
+    </div>
+
+    <!-- Status messages from redirects -->
+    <div id="alert-box" class="alert"></div>
+
+    <!-- Login Form -->
+    <form id="login-form">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="sailor@sea.com" required autocomplete="email" />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="login-btn">
+        Come Aboard
+      </button>
+    </form>
+
+    <p class="text-center mt-16" style="font-size:0.88rem; color: var(--grey);">
+      Not yet a member?
+      <a href="signup.html">Request Access</a>
+    </p>
+
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script>
+  // Show status messages from redirects
+  const params = new URLSearchParams(window.location.search);
+  const msg    = params.get("msg");
+  const alertBox = document.getElementById("alert-box");
+
+  const messages = {
+    "pending":    "Your account is pending admin approval. Please check back soon.",
+    "rejected":   "Your membership request was not approved. Contact us for more info.",
+    "no-account": "No account found. Please request access.",
+    "signed-out": "You have been signed out."
+  };
+
+  if (msg && messages[msg]) {
+    alertBox.textContent = messages[msg];
+    alertBox.className   = "alert alert-info show";
+  }
+
+  // If already logged in, redirect
+  auth.onAuthStateChanged(async function (user) {
+    if (!user) return;
+
+    if (isAdmin(user.email)) {
+      window.location.href = "dashboard.html";
+      return;
+    }
+
+    try {
+      const snap = await db.collection("members").doc(user.uid).get();
+      if (snap.exists) {
+        const data = snap.data();
+        if (data.status === "approved") {
+          window.location.href = "dashboard.html";
+        }
+      }
+    } catch (e) { /* stay on login page */ }
+  });
+
+  // Login form submit
+  document.getElementById("login-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const btn   = document.getElementById("login-btn");
+    const email = document.getElementById("email").value.trim();
+    const pass  = document.getElementById("password").value;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Signing in…';
+    alertBox.className = "alert";
+
+    try {
+      await auth.signInWithEmailAndPassword(email, pass);
+      // onAuthStateChanged will handle the redirect
+    } catch (err) {
+      alertBox.textContent = friendlyError(err.code);
+      alertBox.className   = "alert alert-error show";
+      btn.disabled  = false;
+      btn.innerHTML = "Come Aboard";
+    }
+  });
+
+  function friendlyError(code) {
+    const map = {
+      "auth/user-not-found":    "No account found with that email.",
+      "auth/wrong-password":    "Incorrect password. Please try again.",
+      "auth/invalid-email":     "Please enter a valid email address.",
+      "auth/too-many-requests": "Too many attempts. Please wait and try again.",
+      "auth/invalid-credential":"Invalid email or password."
+    };
+    return map[code] || "Login failed. Please try again.";
+  }
+</script>
+</body>
+</html>

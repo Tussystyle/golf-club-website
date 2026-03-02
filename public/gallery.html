@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photo Gallery — Captain Randy and His Merry Fellows</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="header-inner">
+    <a class="logo" href="dashboard.html">
+      <span class="logo-icon">⚓</span>
+      <div class="logo-text">
+        Captain Randy and His Merry Fellows
+        <span>Members Portal</span>
+      </div>
+    </a>
+    <div id="header-nav"></div>
+  </div>
+</header>
+
+<main class="page-wrap">
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px; margin-bottom:32px;">
+    <div>
+      <h1 class="page-title"><span class="icon">🖼️</span> Photo Gallery</h1>
+      <p class="page-subtitle">Adventures and memories from the Merry Fellows.</p>
+    </div>
+    <!-- Shown only to admins -->
+    <div id="admin-upload-controls" class="hidden">
+      <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+        📤 Upload Photos
+      </button>
+      <input type="file" id="file-input" accept="image/*" multiple />
+    </div>
+  </div>
+
+  <div id="alert-box" class="alert"></div>
+
+  <!-- Upload progress -->
+  <div class="progress-bar-wrap" id="progress-wrap">
+    <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+  </div>
+  <p id="progress-label" style="font-size:0.82rem; color:var(--grey); margin-bottom:16px; display:none;"></p>
+
+  <!-- Gallery Grid -->
+  <div id="gallery-grid" class="gallery-grid">
+    <div class="empty-state" style="grid-column:1/-1;">
+      <span class="icon">⏳</span>
+      Loading photos…
+    </div>
+  </div>
+
+</main>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="Full size photo" />
+</div>
+
+<footer class="site-footer">
+  &copy; <span id="year"></span> <span>Captain Randy and His Merry Fellows</span>. All rights reserved.
+</footer>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth-guard.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  let adminMode = false;
+
+  function initPage(user) {
+    adminMode = isAdmin(user.email);
+    document.getElementById("header-nav").innerHTML = buildNav(user);
+
+    if (adminMode) {
+      document.getElementById("admin-upload-controls").classList.remove("hidden");
+      document.getElementById("file-input").addEventListener("change", handleFileSelect);
+    }
+
+    loadPhotos();
+  }
+
+  // ---------- Load Photos ----------
+  function loadPhotos() {
+    const grid = document.getElementById("gallery-grid");
+
+    db.collection("photos")
+      .orderBy("uploadedAt", "desc")
+      .onSnapshot(function (snap) {
+        grid.innerHTML = "";
+
+        if (snap.empty) {
+          grid.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1;">
+              <span class="icon">🖼️</span>
+              No photos yet.
+            </div>`;
+          return;
+        }
+
+        snap.forEach(function (doc) {
+          grid.appendChild(renderPhoto(doc.id, doc.data()));
+        });
+      }, function (err) {
+        console.error(err);
+        grid.innerHTML = `<div class="alert alert-error show">Failed to load photos.</div>`;
+      });
+  }
+
+  function renderPhoto(id, photo) {
+    const item = document.createElement("div");
+    item.className = "gallery-item";
+
+    const deleteBtn = adminMode ? `
+      <button class="delete-btn" title="Delete photo" onclick="deletePhoto(event,'${id}','${photo.storagePath}')">✕</button>
+    ` : "";
+
+    item.innerHTML = `
+      <img src="${photo.url}" alt="${escapeHtml(photo.name || 'Photo')}" loading="lazy"
+           onclick="openLightbox('${photo.url}')" />
+      ${deleteBtn}
+    `;
+    return item;
+  }
+
+  // ---------- Upload ----------
+  function handleFileSelect(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    uploadFiles(files);
+    e.target.value = ""; // reset so same file can be re-selected
+  }
+
+  async function uploadFiles(files) {
+    const alertBox     = document.getElementById("alert-box");
+    const progressWrap = document.getElementById("progress-wrap");
+    const progressBar  = document.getElementById("progress-bar");
+    const progressLbl  = document.getElementById("progress-label");
+
+    alertBox.className = "alert";
+    progressWrap.classList.add("show");
+    progressLbl.style.display = "block";
+
+    let completed = 0;
+
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        alertBox.textContent = `Skipped "${file.name}" — not an image.`;
+        alertBox.className   = "alert alert-error show";
+        completed++;
+        continue;
+      }
+
+      const storagePath = `photos/${Date.now()}_${file.name}`;
+      const ref         = storage.ref(storagePath);
+      const task        = ref.put(file);
+
+      await new Promise(function (resolve, reject) {
+        task.on(
+          "state_changed",
+          function (snap) {
+            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+            progressBar.style.width = pct + "%";
+            progressLbl.textContent = `Uploading ${file.name}… ${pct}%`;
+          },
+          reject,
+          async function () {
+            try {
+              const url = await ref.getDownloadURL();
+              await db.collection("photos").add({
+                url,
+                storagePath,
+                name:       file.name,
+                uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            } catch (err) { reject(err); return; }
+            resolve();
+          }
+        );
+      }).catch(function (err) {
+        alertBox.textContent = `Failed to upload "${file.name}": ${err.message}`;
+        alertBox.className   = "alert alert-error show";
+      });
+
+      completed++;
+      progressBar.style.width = Math.round((completed / files.length) * 100) + "%";
+    }
+
+    progressWrap.classList.remove("show");
+    progressBar.style.width = "0%";
+    progressLbl.style.display = "none";
+
+    if (!alertBox.classList.contains("alert-error")) {
+      alertBox.textContent = `${completed} photo(s) uploaded successfully!`;
+      alertBox.className   = "alert alert-success show";
+      setTimeout(function () { alertBox.className = "alert"; }, 3000);
+    }
+  }
+
+  // ---------- Delete ----------
+  async function deletePhoto(e, docId, storagePath) {
+    e.stopPropagation();
+    if (!confirm("Delete this photo? This cannot be undone.")) return;
+
+    try {
+      // Delete from Storage
+      if (storagePath) {
+        await storage.ref(storagePath).delete().catch(function () {
+          // Ignore storage errors (file may not exist)
+        });
+      }
+      // Delete from Firestore
+      await db.collection("photos").doc(docId).delete();
+    } catch (err) {
+      alert("Failed to delete photo: " + err.message);
+    }
+  }
+
+  // ---------- Lightbox ----------
+  function openLightbox(url) {
+    document.getElementById("lightbox-img").src = url;
+    document.getElementById("lightbox").classList.add("open");
+  }
+
+  function closeLightbox() {
+    document.getElementById("lightbox").classList.remove("open");
+    document.getElementById("lightbox-img").src = "";
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeLightbox();
+  });
+
+  // ---------- Helpers ----------
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>

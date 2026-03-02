@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Helper functions ──────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Must match ADMIN_EMAILS in firebase-config.js
+      return isSignedIn() &&
+        request.auth.token.email in ['admin@example.com'];
+    }
+
+    // ── Photos folder ─────────────────────────────────────────────
+    match /photos/{fileName} {
+      // Any signed-in user can read photos
+      allow read: if isSignedIn();
+
+      // Only admins can upload
+      allow write: if isAdmin()
+        && request.resource.size < 10 * 1024 * 1024   // 10 MB max
+        && request.resource.contentType.matches('image/.*');
+
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+  }
+}

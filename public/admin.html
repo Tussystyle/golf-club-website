@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — Captain Randy and His Merry Fellows</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="header-inner">
+    <a class="logo" href="dashboard.html">
+      <span class="logo-icon">⚓</span>
+      <div class="logo-text">
+        Captain Randy and His Merry Fellows
+        <span>Admin Panel</span>
+      </div>
+    </a>
+    <div id="header-nav"></div>
+  </div>
+</header>
+
+<main class="page-wrap">
+
+  <h1 class="page-title"><span class="icon">⚙️</span> Admin Panel</h1>
+  <p class="page-subtitle">Manage members, blog posts, and photos.</p>
+
+  <!-- Access denied message (shown to non-admins if they somehow land here) -->
+  <div id="access-denied" class="hidden" style="text-align:center; padding: 60px 0;">
+    <span style="font-size:3rem;">🚫</span>
+    <h3 style="color:var(--red-danger); margin:16px 0 8px; font-family:var(--font-main);">Access Denied</h3>
+    <p style="color:var(--grey);">You do not have permission to view this page.</p>
+    <a href="dashboard.html" class="btn btn-secondary" style="display:inline-flex; margin-top:20px;">Go to Dashboard</a>
+  </div>
+
+  <!-- Admin content -->
+  <div id="admin-content" class="hidden">
+
+    <div id="alert-box" class="alert"></div>
+
+    <!-- Tabs -->
+    <div class="admin-tabs">
+      <button class="tab-btn active" onclick="switchTab('members')">👥 Members</button>
+      <button class="tab-btn" onclick="switchTab('blog')">📜 Blog Posts</button>
+      <button class="tab-btn" onclick="switchTab('photos')">🖼️ Photos</button>
+    </div>
+
+    <!-- ==================== MEMBERS TAB ==================== -->
+    <div class="tab-panel active" id="tab-members">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <h2 style="font-family:var(--font-main); color:var(--gold); font-size:1.2rem;">Member Requests & Roster</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="filterMembers('all')">All</button>
+          <button class="btn btn-secondary btn-sm" onclick="filterMembers('pending')">Pending</button>
+          <button class="btn btn-secondary btn-sm" onclick="filterMembers('approved')">Approved</button>
+          <button class="btn btn-secondary btn-sm" onclick="filterMembers('rejected')">Rejected</button>
+        </div>
+      </div>
+      <div id="member-list" class="member-list">
+        <div class="empty-state"><span class="icon">⏳</span> Loading…</div>
+      </div>
+    </div>
+
+    <!-- ==================== BLOG TAB ==================== -->
+    <div class="tab-panel" id="tab-blog">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="font-family:var(--font-main); color:var(--gold); font-size:1.2rem;">Blog Posts</h2>
+        <button class="btn btn-primary btn-sm" onclick="openBlogModal()">+ New Post</button>
+      </div>
+      <div id="admin-post-list" class="post-list"></div>
+    </div>
+
+    <!-- ==================== PHOTOS TAB ==================== -->
+    <div class="tab-panel" id="tab-photos">
+      <h2 style="font-family:var(--font-main); color:var(--gold); font-size:1.2rem; margin-bottom:20px;">Photo Management</h2>
+
+      <!-- Upload area -->
+      <div class="upload-area" id="upload-area" onclick="document.getElementById('admin-file-input').click()">
+        <span class="upload-icon">📤</span>
+        <p>Click to select photos, or drag &amp; drop them here</p>
+        <p style="font-size:0.78rem;">Accepts JPG, PNG, GIF, WEBP</p>
+      </div>
+      <input type="file" id="admin-file-input" accept="image/*" multiple />
+
+      <div class="progress-bar-wrap" id="admin-progress-wrap">
+        <div class="progress-bar" id="admin-progress-bar" style="width:0%"></div>
+      </div>
+      <p id="admin-progress-label" style="font-size:0.82rem; color:var(--grey); margin-bottom:16px; display:none;"></p>
+
+      <div id="admin-gallery-grid" class="gallery-grid" style="margin-top:24px;"></div>
+    </div>
+
+  </div><!-- /admin-content -->
+
+</main>
+
+<!-- Blog Post Modal -->
+<div class="modal-overlay" id="blog-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="blog-modal-title">New Post</h2>
+      <button class="modal-close" onclick="closeBlogModal()">✕</button>
+    </div>
+    <div id="blog-modal-alert" class="alert"></div>
+    <form id="blog-form">
+      <input type="hidden" id="edit-post-id" />
+      <div class="form-group">
+        <label for="edit-post-title">Title</label>
+        <input type="text" id="edit-post-title" placeholder="Post title…" required />
+      </div>
+      <div class="form-group">
+        <label for="edit-post-body">Body</label>
+        <textarea id="edit-post-body" rows="10" placeholder="Write your post…" required></textarea>
+      </div>
+      <div style="display:flex; gap:12px; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeBlogModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="save-blog-btn" style="width:auto;">Save Post</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer class="site-footer">
+  &copy; <span id="year"></span> <span>Captain Randy and His Merry Fellows</span>. All rights reserved.
+</footer>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/auth-guard.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  let currentAdminUser = null;
+  let allMembers       = [];
+  let currentFilter    = "all";
+
+  function initPage(user) {
+    currentAdminUser = user;
+    document.getElementById("header-nav").innerHTML = buildNav(user);
+
+    if (!isAdmin(user.email)) {
+      document.getElementById("access-denied").classList.remove("hidden");
+      return;
+    }
+
+    document.getElementById("admin-content").classList.remove("hidden");
+    loadMembers();
+    loadAdminPosts();
+    loadAdminPhotos();
+    setupPhotoUpload();
+    setupDragDrop();
+  }
+
+  // ==================== TABS ====================
+  function switchTab(name) {
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("tab-" + name).classList.add("active");
+    event.currentTarget.classList.add("active");
+  }
+
+  // ==================== MEMBERS ====================
+  function loadMembers() {
+    db.collection("members")
+      .orderBy("createdAt", "desc")
+      .onSnapshot(function (snap) {
+        allMembers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderMembers();
+      });
+  }
+
+  function filterMembers(filter) {
+    currentFilter = filter;
+    renderMembers();
+  }
+
+  function renderMembers() {
+    const list = document.getElementById("member-list");
+    const filtered = currentFilter === "all"
+      ? allMembers
+      : allMembers.filter(m => m.status === currentFilter);
+
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty-state"><span class="icon">👥</span> No members in this category.</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(m => memberRowHTML(m)).join("");
+  }
+
+  function memberRowHTML(m) {
+    const date = m.createdAt ? m.createdAt.toDate().toLocaleDateString() : "—";
+    const statusBadge = `<span class="status-badge status-${m.status}">${m.status}</span>`;
+
+    const actions = m.status === "pending" ? `
+      <button class="btn btn-success btn-sm" onclick="updateMemberStatus('${m.id}','approved')">Approve</button>
+      <button class="btn btn-danger btn-sm"  onclick="updateMemberStatus('${m.id}','rejected')">Reject</button>
+    ` : m.status === "approved" ? `
+      <button class="btn btn-danger btn-sm"    onclick="updateMemberStatus('${m.id}','rejected')">Revoke</button>
+    ` : `
+      <button class="btn btn-success btn-sm" onclick="updateMemberStatus('${m.id}','approved')">Approve</button>
+    `;
+
+    return `
+      <div class="member-row">
+        <div class="member-info">
+          <h4>${escapeHtml(m.fullName || "Unknown")}</h4>
+          <p>${escapeHtml(m.email)} &nbsp;|&nbsp; ${escapeHtml(m.phone || "—")} &nbsp;|&nbsp; Joined: ${date}</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          ${statusBadge}
+          <div class="member-actions">${actions}</div>
+        </div>
+      </div>`;
+  }
+
+  async function updateMemberStatus(uid, status) {
+    try {
+      await db.collection("members").doc(uid).update({ status });
+      showAlert(`Member status updated to "${status}".`, "success");
+    } catch (err) {
+      showAlert("Failed to update member: " + err.message, "error");
+    }
+  }
+
+  // ==================== BLOG ====================
+  function loadAdminPosts() {
+    const list = document.getElementById("admin-post-list");
+    db.collection("posts")
+      .orderBy("createdAt", "desc")
+      .onSnapshot(function (snap) {
+        if (snap.empty) {
+          list.innerHTML = `<div class="empty-state"><span class="icon">📜</span> No posts yet.</div>`;
+          return;
+        }
+        list.innerHTML = "";
+        snap.forEach(function (doc) {
+          const p    = doc.data();
+          const date = p.createdAt ? p.createdAt.toDate().toLocaleDateString() : "—";
+          const card = document.createElement("div");
+          card.className = "post-card";
+          card.innerHTML = `
+            <div class="post-meta"><span>📅 ${date}</span><span>✍️ ${escapeHtml(p.author || "—")}</span></div>
+            <h2>${escapeHtml(p.title)}</h2>
+            <p style="color:var(--grey); font-size:0.88rem; margin-top:8px;">
+              ${escapeHtml((p.body || "").substring(0, 120))}${p.body && p.body.length > 120 ? "…" : ""}
+            </p>
+            <div class="post-actions">
+              <button class="btn btn-secondary btn-sm" onclick="openBlogModal('${doc.id}')">✏️ Edit</button>
+              <button class="btn btn-danger btn-sm"    onclick="deleteAdminPost('${doc.id}')">🗑 Delete</button>
+            </div>`;
+          list.appendChild(card);
+        });
+      });
+  }
+
+  function openBlogModal(postId) {
+    const modal = document.getElementById("blog-modal");
+    document.getElementById("blog-modal-alert").className = "alert";
+    document.getElementById("blog-form").reset();
+    document.getElementById("edit-post-id").value = "";
+
+    if (postId) {
+      document.getElementById("blog-modal-title").textContent = "Edit Post";
+      db.collection("posts").doc(postId).get().then(function (snap) {
+        const p = snap.data();
+        document.getElementById("edit-post-id").value    = postId;
+        document.getElementById("edit-post-title").value = p.title;
+        document.getElementById("edit-post-body").value  = p.body;
+      });
+    } else {
+      document.getElementById("blog-modal-title").textContent = "New Post";
+    }
+
+    modal.classList.add("open");
+  }
+
+  function closeBlogModal() {
+    document.getElementById("blog-modal").classList.remove("open");
+  }
+
+  document.getElementById("blog-modal").addEventListener("click", function (e) {
+    if (e.target === this) closeBlogModal();
+  });
+
+  document.getElementById("blog-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const btn     = document.getElementById("save-blog-btn");
+    const alertEl = document.getElementById("blog-modal-alert");
+    const postId  = document.getElementById("edit-post-id").value;
+    const title   = document.getElementById("edit-post-title").value.trim();
+    const body    = document.getElementById("edit-post-body").value.trim();
+
+    btn.disabled  = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    alertEl.className = "alert";
+
+    try {
+      if (postId) {
+        await db.collection("posts").doc(postId).update({ title, body, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } else {
+        await db.collection("posts").add({
+          title, body,
+          author:    currentAdminUser.displayName || currentAdminUser.email,
+          authorUid: currentAdminUser.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      closeBlogModal();
+    } catch (err) {
+      alertEl.textContent = "Failed to save: " + err.message;
+      alertEl.className   = "alert alert-error show";
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "Save Post";
+    }
+  });
+
+  async function deleteAdminPost(postId) {
+    if (!confirm("Delete this post?")) return;
+    try {
+      await db.collection("posts").doc(postId).delete();
+    } catch (err) {
+      alert("Failed to delete: " + err.message);
+    }
+  }
+
+  // ==================== PHOTOS ====================
+  function setupPhotoUpload() {
+    document.getElementById("admin-file-input").addEventListener("change", function (e) {
+      const files = Array.from(e.target.files);
+      if (files.length) uploadPhotos(files);
+      e.target.value = "";
+    });
+  }
+
+  function setupDragDrop() {
+    const area = document.getElementById("upload-area");
+    area.addEventListener("dragover",  function (e) { e.preventDefault(); area.classList.add("drag-over"); });
+    area.addEventListener("dragleave", function ()  { area.classList.remove("drag-over"); });
+    area.addEventListener("drop",      function (e) {
+      e.preventDefault();
+      area.classList.remove("drag-over");
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+      if (files.length) uploadPhotos(files);
+    });
+  }
+
+  function loadAdminPhotos() {
+    const grid = document.getElementById("admin-gallery-grid");
+    db.collection("photos")
+      .orderBy("uploadedAt", "desc")
+      .onSnapshot(function (snap) {
+        grid.innerHTML = "";
+        if (snap.empty) {
+          grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><span class="icon">🖼️</span> No photos yet.</div>`;
+          return;
+        }
+        snap.forEach(function (doc) {
+          const p    = doc.data();
+          const item = document.createElement("div");
+          item.className = "gallery-item";
+          item.innerHTML = `
+            <img src="${p.url}" alt="${escapeHtml(p.name || 'Photo')}" loading="lazy" />
+            <button class="delete-btn" title="Delete" onclick="deleteAdminPhoto(event,'${doc.id}','${p.storagePath}')">✕</button>`;
+          // Force delete button visible in admin
+          item.querySelector(".delete-btn").style.display = "flex";
+          grid.appendChild(item);
+        });
+      });
+  }
+
+  async function uploadPhotos(files) {
+    const progressWrap = document.getElementById("admin-progress-wrap");
+    const progressBar  = document.getElementById("admin-progress-bar");
+    const progressLbl  = document.getElementById("admin-progress-label");
+
+    progressWrap.classList.add("show");
+    progressLbl.style.display = "block";
+
+    let completed = 0;
+
+    for (const file of files) {
+      const storagePath = `photos/${Date.now()}_${file.name}`;
+      const ref  = storage.ref(storagePath);
+      const task = ref.put(file);
+
+      await new Promise(function (resolve, reject) {
+        task.on(
+          "state_changed",
+          function (snap) {
+            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+            progressBar.style.width = pct + "%";
+            progressLbl.textContent = `Uploading ${file.name}… ${pct}%`;
+          },
+          reject,
+          async function () {
+            const url = await ref.getDownloadURL();
+            await db.collection("photos").add({
+              url, storagePath,
+              name:       file.name,
+              uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            resolve();
+          }
+        );
+      }).catch(function (err) {
+        showAlert("Upload failed: " + err.message, "error");
+      });
+
+      completed++;
+      progressBar.style.width = Math.round((completed / files.length) * 100) + "%";
+    }
+
+    progressWrap.classList.remove("show");
+    progressBar.style.width = "0%";
+    progressLbl.style.display = "none";
+    showAlert(`${completed} photo(s) uploaded!`, "success");
+  }
+
+  async function deleteAdminPhoto(e, docId, storagePath) {
+    e.stopPropagation();
+    if (!confirm("Delete this photo?")) return;
+    try {
+      if (storagePath) {
+        await storage.ref(storagePath).delete().catch(() => {});
+      }
+      await db.collection("photos").doc(docId).delete();
+    } catch (err) {
+      alert("Failed to delete: " + err.message);
+    }
+  }
+
+  // ==================== HELPERS ====================
+  function showAlert(msg, type) {
+    const box = document.getElementById("alert-box");
+    box.textContent = msg;
+    box.className   = `alert alert-${type} show`;
+    setTimeout(() => box.className = "alert", 4000);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>
