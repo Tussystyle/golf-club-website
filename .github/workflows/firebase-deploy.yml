@@ -13,7 +13,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check token is set
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "ERROR: FIREBASE_TOKEN secret is empty or not set"
+            exit 1
+          else
+            echo "FIREBASE_TOKEN is set (length: ${#FIREBASE_TOKEN})"
+          fi
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
       - name: Deploy to Firebase Hosting
-        run: npx firebase-tools deploy --only hosting --project captrandy --token "$FIREBASE_TOKEN" --non-interactive
+        run: npx firebase-tools@12 deploy --only hosting --project captrandy --token "$FIREBASE_TOKEN" --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
