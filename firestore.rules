@@ -17,7 +17,7 @@ service cloud.firestore {
     function isAdmin() {
       // List your admin email(s) here. Must match ADMIN_EMAILS in firebase-config.js
       return isSignedIn() &&
-        request.auth.token.email in ['admin@example.com'];
+        request.auth.token.email in ['chadtusa3@gmail.com'];
     }
 
     function isOwner(uid) {

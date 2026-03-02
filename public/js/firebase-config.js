@@ -26,7 +26,7 @@ const storage = firebase.storage();
 // List of admin email addresses.
 // Add your own admin email(s) here.
 const ADMIN_EMAILS = [
-  "admin@example.com"   // ← replace with your email
+  "chadtusa3@gmail.com"
 ];
 
 function isAdmin(email) {
