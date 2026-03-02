@@ -5,12 +5,13 @@
 // ============================================================
 
 const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey:            "AIzaSyD_WzRA8lQMpiTi6Vj1QWQ6_NNqxrlVkJ8",
+  authDomain:        "captrandy.firebaseapp.com",
+  projectId:         "captrandy",
+  storageBucket:     "captrandy.firebasestorage.app",
+  messagingSenderId: "381963146572",
+  appId:             "1:381963146572:web:0675090da198c4f0572be9",
+  measurementId:     "G-HFM1VM54SS"
 };
 
 // ---- DO NOT EDIT BELOW THIS LINE ----
