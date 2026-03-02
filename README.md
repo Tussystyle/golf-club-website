@@ -1,4 +1,4 @@
-# Captain Randy and His Merry Fellows — Website Setup Guide
+# Captain Randy and His Merry Fellows — Website  Setup Guide
 
 A private members-only club website built with plain HTML/CSS/JS and Firebase.
 
