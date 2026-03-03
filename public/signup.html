@@ -11,7 +11,6 @@
 <div class="auth-wrap">
   <div class="auth-card">
 
-    <!-- Logo -->
     <div class="auth-logo">
       <img src="images/logo.png" alt="Captain Randy and His Merry Fellows" class="auth-logo-img" />
       <h1>Captain Randy and<br>His Merry Fellows</h1>
@@ -20,7 +19,6 @@
 
     <div id="alert-box" class="alert"></div>
 
-    <!-- Success state (hidden until submitted) -->
     <div id="success-state" class="hidden" style="text-align:center; padding: 20px 0;">
       <span style="font-size:3rem;">✅</span>
       <h3 style="color:var(--gold); font-family:var(--font-main); margin: 16px 0 8px;">Request Submitted!</h3>
@@ -33,33 +31,27 @@
       </a>
     </div>
 
-    <!-- Registration Form -->
     <form id="signup-form">
       <div class="form-group">
         <label for="fullname">Full Name</label>
         <input type="text" id="fullname" placeholder="Barnacle Bill" required autocomplete="name" />
       </div>
-
       <div class="form-group">
         <label for="email">Email Address</label>
         <input type="email" id="email" placeholder="sailor@sea.com" required autocomplete="email" />
       </div>
-
       <div class="form-group">
         <label for="phone">Cell Phone Number</label>
         <input type="tel" id="phone" placeholder="(555) 867-5309" required autocomplete="tel" />
       </div>
-
       <div class="form-group">
         <label for="password">Choose a Password</label>
         <input type="password" id="password" placeholder="At least 8 characters" required autocomplete="new-password" minlength="8" />
       </div>
-
       <div class="form-group">
         <label for="confirm-password">Confirm Password</label>
         <input type="password" id="confirm-password" placeholder="••••••••" required autocomplete="new-password" />
       </div>
-
       <button type="submit" class="btn btn-primary" id="signup-btn">
         Submit Request
       </button>
@@ -72,13 +64,11 @@
   </div>
 </div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script>
-  // Redirect if already logged in
   auth.onAuthStateChanged(function (user) {
     if (user) window.location.href = "dashboard.html";
   });
@@ -105,14 +95,11 @@
     btn.innerHTML = '<span class="spinner"></span> Submitting…';
 
     try {
-      // Create the Auth account
       const cred = await auth.createUserWithEmailAndPassword(email, password);
       const uid  = cred.user.uid;
 
-      // Update display name
       await cred.user.updateProfile({ displayName: fullname });
 
-      // Save member record to Firestore with "pending" status
       await db.collection("members").doc(uid).set({
         uid:       uid,
         fullName:  fullname,
@@ -134,7 +121,6 @@
       // Sign out immediately — they need admin approval first
       await auth.signOut();
 
-      // Show success state
       document.getElementById("signup-form").classList.add("hidden");
       document.querySelector(".text-center.mt-16").classList.add("hidden");
       document.getElementById("success-state").classList.remove("hidden");
