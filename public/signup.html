@@ -117,7 +117,21 @@
       await auth.signOut();
 
       // Send email notification to admin via Formspree
+console.log("Sending Formspree notification...");
 fetch("https://formspree.io/f/maqdgrlk", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: fullname,
+    email: email,
+    phone: phone,
+    message: "New membership request - please log in to approve: https://captainrandyandhismerryfellows.com/admin"
+  })
+}).then(res => {
+  console.log("Formspree response:", res.status);
+}).catch(err => {
+  console.log("Formspree error:", err);
+});
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
