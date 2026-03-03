@@ -36,27 +36,22 @@
         <label for="fullname">Full Name</label>
         <input type="text" id="fullname" placeholder="Barnacle Bill" required autocomplete="name" />
       </div>
-
       <div class="form-group">
         <label for="email">Email Address</label>
         <input type="email" id="email" placeholder="sailor@sea.com" required autocomplete="email" />
       </div>
-
       <div class="form-group">
         <label for="phone">Cell Phone Number</label>
         <input type="tel" id="phone" placeholder="(555) 867-5309" required autocomplete="tel" />
       </div>
-
       <div class="form-group">
         <label for="password">Choose a Password</label>
         <input type="password" id="password" placeholder="At least 8 characters" required autocomplete="new-password" minlength="8" />
       </div>
-
       <div class="form-group">
         <label for="confirm-password">Confirm Password</label>
         <input type="password" id="confirm-password" placeholder="••••••••" required autocomplete="new-password" />
       </div>
-
       <button type="submit" class="btn btn-primary" id="signup-btn">
         Submit Request
       </button>
@@ -117,30 +112,21 @@
       await auth.signOut();
 
       // Send email notification to admin via Formspree
-console.log("Sending Formspree notification...");
-fetch("https://formspree.io/f/maqdgrlk", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    name: fullname,
-    email: email,
-    phone: phone,
-    message: "New membership request - please log in to approve: https://captainrandyandhismerryfellows.com/admin"
-  })
-}).then(res => {
-  console.log("Formspree response:", res.status);
-}).catch(err => {
-  console.log("Formspree error:", err);
-});
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    name: fullname,
-    email: email,
-    phone: phone,
-    message: "New membership request - please log in to approve: https://captainrandyandhismerryfellows.com/admin"
-  })
-}).catch(err => console.log("Notification failed", err));
+      console.log("Sending Formspree notification...");
+      fetch("https://formspree.io/f/maqdgrlk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullname,
+          email: email,
+          phone: phone,
+          message: "New membership request - please log in to approve: https://captainrandyandhismerryfellows.com/admin"
+        })
+      }).then(res => {
+        console.log("Formspree response:", res.status);
+      }).catch(err => {
+        console.log("Formspree error:", err);
+      });
 
       document.getElementById("signup-form").classList.add("hidden");
       document.querySelector(".text-center.mt-16").classList.add("hidden");
