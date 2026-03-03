@@ -21,7 +21,8 @@ firebase.initializeApp(FIREBASE_CONFIG);
 
 const auth    = firebase.auth();
 const db      = firebase.firestore();
-const storage = firebase.storage();
+let storage;
+try { storage = firebase.storage(); } catch(e) { console.log('Storage not available'); }
 
 // List of admin email addresses.
 // Add your own admin email(s) here.
