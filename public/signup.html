@@ -72,7 +72,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <script src="js/firebase-config.js"></script>
 <script>
   auth.onAuthStateChanged(function (user) {
@@ -117,14 +116,17 @@
 
       await auth.signOut();
 
-      // Send email notification to admin
-      emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
-      emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
-        to_email:  "chadtusa3@gmail.com",
-        from_name: fullname,
-        from_email: email,
-        phone:     phone
-      }).catch(err => console.log("Email notification failed", err));
+      // Send email notification to admin via Formspree
+fetch("https://formspree.io/f/maqdgrlk", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: fullname,
+    email: email,
+    phone: phone,
+    message: "New membership request - please log in to approve: https://captainrandyandhismerryfellows.com/admin"
+  })
+}).catch(err => console.log("Notification failed", err));
 
       document.getElementById("signup-form").classList.add("hidden");
       document.querySelector(".text-center.mt-16").classList.add("hidden");
