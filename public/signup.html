@@ -13,7 +13,7 @@
 
     <!-- Logo -->
     <div class="auth-logo">
-      <span class="emblem">⚓</span>
+      <img src="images/logo.png" alt="Captain Randy and His Merry Fellows" class="auth-logo-img" />
       <h1>Captain Randy and<br>His Merry Fellows</h1>
       <p>Request Membership</p>
     </div>
@@ -120,6 +120,15 @@
         phone:     phone,
         status:    "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Trigger admin email notification via Cloud Function
+      await db.collection("notifications").add({
+        fullName:  fullname,
+        email:     email,
+        phone:     phone,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        processed: false
       });
 
       // Sign out immediately — they need admin approval first

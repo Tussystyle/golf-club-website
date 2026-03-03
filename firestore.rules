@@ -50,6 +50,14 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // ── Notifications (admin email triggers) ─────────────────────
+    match /notifications/{notifId} {
+      // Any signed-in user can create (fired during signup before sign-out)
+      allow create: if isSignedIn();
+      // Only admins can read or modify; Cloud Function uses Admin SDK (bypasses rules)
+      allow read, update, delete: if isAdmin();
+    }
+
     // ── Photos ───────────────────────────────────────────────────
     match /photos/{photoId} {
       // Approved members and admins can read
